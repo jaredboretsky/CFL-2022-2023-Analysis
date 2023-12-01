@@ -1,0 +1,11 @@
+TM,1st_down_plays,1st_down_avg_yds,Opp_1st_down_plays,Opp_1st_down_avg_yds,1st_down_rush_calls,1st_down_pass_calls
+BC,36,8.00,29,5.00,15,21
+CGY,29,5.00,36,8.00,10,19
+EDM,27,8.15,33,4.12,11,16
+HAM,31,6.29,38,8.32,8,23
+MTL,27,5.63,29,4.21,17,10
+OTT,29,4.21,27,5.63,12,17
+SSK,33,4.12,27,8.15,14,19
+TOR,0,#DIV/0!,0,#DIV/0!,0,0
+WPG,38,8.32,31,6.29,19,19
+CFL,250,6.30,250,6.30,106,144

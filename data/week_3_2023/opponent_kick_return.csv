@@ -1,0 +1,11 @@
+Team,Long_gain_returns,Punt_returns_No,Punt_returns_Yds,Punt_returns_Avg,Punt_returns_LG,Punt_returns_TD,Punt_returns_30+,Kickoff_returns_No,Kickoff_returns_Yds,Kickoff_returns_Avg,Kickoff_returns_LG,Kickoff_returns_TD,Kickoff_returns_40+,FG_miss_returns_No,FG_miss_returns_Yds,FG_miss_returns_LG,FG_miss_returns_TD,FG_miss_returns_30,TDs_PR,TDs_KOR,TDs_FGM,TDs_Tot
+BC,2,13,120,9.2,19,0,0,10,232,23.2,43,0,2,1,20,20,0,0,0,0,0,0
+CGY,4,21,212,10.1,79,1,1,11,281,25.5,42,0,1,2,82,48,0,2,1,0,0,1
+EDM,2,19,215,11.3,44,0,1,8,129,16.1,62,0,1,0,0,0,0,0,0,0,0,0
+HAM,2,18,186,10.3,77,1,1,10,191,19.1,43,0,1,0,0,0,0,0,1,0,0,1
+MTL,0,12,94,7.8,15,0,0,10,205,20.5,30,0,0,0,0,0,0,0,0,0,0,0
+OTT,0,11,58,5.3,23,0,0,5,65,13.0,25,0,0,1,24,24,0,0,0,0,0,0
+SSK,2,13,220,16.9,92,1,1,11,209,19.0,41,0,1,2,66,41,0,0,1,0,0,1
+TOR,3,8,134,16.8,52,0,2,12,332,27.7,72,0,1,0,0,0,0,0,0,0,0,0
+WPG,1,10,96,9.6,17,0,0,14,319,22.8,40,0,1,0,0,0,0,0,0,0,0,0
+CFL,16,125,"1,335",10.7,92,3,6,91,"1,963",21.6,72,0,8,6,192,48,0,2,3,0,0,3

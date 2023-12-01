@@ -19,7 +19,7 @@ import random
 
 # Initialize Dash app
 app = Dash(__name__)
-
+server = app.server  # This exposes the Flask server for Gunicorn to use
 # Define callback to update the scatter plot based on selected week
 @app.callback(
     Output('scatter-plot', 'figure'),

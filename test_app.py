@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 from dash import Dash, html, dash_table, dcc, callback, Output, Input
@@ -14,24 +14,24 @@ import base64
 import random
 
 
-# In[ ]:
+# In[10]:
 
 
 # Initialize Dash app
 app = Dash(__name__)
-server = app.server
+
 # Define callback to update the scatter plot based on selected week
 @app.callback(
     Output('scatter-plot', 'figure'),
-    [Input('week-dropdown', 'value'),
-     Input('my-radio-buttons-final', 'value')])
+    [Input('week-dropdown-scatter', 'value'),
+     Input('radio-scatter', 'value')])
 
 def update_scatter_plot(selected_week, selected_metric):
     
     # Choose the plot based on the selected metric
     if selected_metric == 'Points':
         # Define the path to the CSV file for the selected week
-        csv_path = f"data/week_{selected_week}_2023/scoring_breakdown.csv"
+        csv_path = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/scoring_breakdown.csv"
         # Check if the file exists before attempting to read it
         if os.path.exists(csv_path):
             # Read the data from the CSV file for the selected week
@@ -65,12 +65,7 @@ def update_scatter_plot(selected_week, selected_metric):
         fig_points.update_traces(
             hovertemplate='<b>Team:</b> %{text}<br><b>Points For:</b> %{x}<br><b>Points Against:</b> %{y}<br><b>Point Differential:</b> %{customdata[0]}<extra></extra>'
         )
-#     # Add labels for each quarter
-#     fig.add_annotation(text='Everything is happening', x=x_max-5, y=y_max-5, showarrow=False)
-#     fig.add_annotation(text='Things are going bad', x=x_min+5, y=y_max-5, showarrow=False)
-#     fig.add_annotation(text='Boring football', x=x_min+5, y=y_min+5, showarrow=False)
-#     fig.add_annotation(text='Where you want to be', x=x_max-5, y=y_min+5, showarrow=False)
-
+    
         fig_points.update_layout(
             title=f'CFL: Points For vs Points Against (Week {selected_week})',
             xaxis_title='Points For',
@@ -83,8 +78,8 @@ def update_scatter_plot(selected_week, selected_metric):
 
         return fig_points
     else:
-        csv_path_team = f"data/week_{selected_week}_2023/net_offence.csv"
-        csv_path_opp = f"data/week_{selected_week}_2023/opponent_net_offence.csv"
+        csv_path_team = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/net_offence.csv"
+        csv_path_opp = f"//Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/opponent_net_offence.csv"
     # Check if the file exists before attempting to read it
         if os.path.exists(csv_path_team):
             # Read the data from the CSV file for the selected week
@@ -128,13 +123,7 @@ def update_scatter_plot(selected_week, selected_metric):
         fig_yards.update_traces(
             hovertemplate='<b>Team:</b> %{text}<br><b>Yards For:</b> %{x}<br><b>Yards Against:</b> %{y}<br><b>Yard Differential:</b> %{customdata[0]}<extra></extra>'
         )
-        
-#     # Add labels for each quarter
-#     fig.add_annotation(text='Everything is happening', x=x_max-5, y=y_max-5, showarrow=False)
-#     fig.add_annotation(text='Things are going bad', x=x_min+5, y=y_max-5, showarrow=False)
-#     fig.add_annotation(text='Boring football', x=x_min+5, y=y_min+5, showarrow=False)
-#     fig.add_annotation(text='Where you want to be', x=x_max-5, y=y_min+5, showarrow=False)
-
+    
         fig_yards.update_layout(
             title=f'CFL: Yards For vs Yards Against (Week {selected_week})',
             xaxis_title='Yards For',
@@ -145,10 +134,103 @@ def update_scatter_plot(selected_week, selected_metric):
             yaxis=dict(range=[y_min, y_max])
         )
         return fig_yards
+
+@app.callback(
+    Output('first-down', 'figure'),
+    [Input('week-dropdown-first-down', 'value')])
+    
+def update_chart(week_number):
+    # Load data for the selected week
+    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/first_down_offence.csv'
+    df = pd.read_csv(filename)
+    filename_standings = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/game_stat_trends.csv'
+    df_standings = pd.read_csv(filename_standings)
+    # Perform the same data processing as before
+    df['1st_down_pass_calls'] = pd.to_numeric(df['1st_down_pass_calls'], errors='coerce')
+    df['1st_down_plays'] = pd.to_numeric(df['1st_down_plays'], errors='coerce')
+    # Replace '#DIV/0!' with NaN, then fill NaN with 0 (or another appropriate value)
+    df.replace('#DIV/0!', pd.NA, inplace=True)
+    df.fillna(0, inplace=True)
+    # Now perform the division
+    df['pass_percentage'] = df['1st_down_pass_calls'] / df['1st_down_plays']
+    # Convert other necessary columns
+    df['1st_down_avg_yds'] = pd.to_numeric(df['1st_down_avg_yds'])
+    if 'Team' in df.columns:
+        df['TM'] = df['Team']
+    df['TM'] = df['TM'].astype(str)
+    
+    # Bar chart creation code (same as before)
+    data = []
+    bar_width = 0.4
+    first_pass_bar = True
+    first_run_bar = True
+    
+    for i, team in df.iterrows():
+        pass_percentage = team['pass_percentage']
+        run_percentage = 1 - pass_percentage
+        average_yard = team['1st_down_avg_yds']
+
+        # Pass portion of the bar
+        if first_pass_bar:
+            data.append(go.Bar(
+                x=[team['TM']],
+                y=[pass_percentage * average_yard],
+                name='Pass',
+                width=bar_width,
+                marker=dict(color='green'),
+                hovertemplate=f"Pass: {pass_percentage:.1%}<br>Avg Yards: {average_yard:.1f}<extra></extra>"
+            ))
+            first_pass_bar = False
+        else:
+            data.append(go.Bar(
+                x=[team['TM']],
+                y=[pass_percentage * average_yard],
+                width=bar_width,
+                marker=dict(color='green'),
+                showlegend=False,
+                hovertemplate=f"Pass: {pass_percentage:.1%}<br>Avg Yards: {average_yard:.1f}<extra></extra>"
+            ))
+
+    # Run portion of the bar
+        if first_run_bar:
+            data.append(go.Bar(
+                x=[team['TM']],
+                y=[run_percentage * average_yard],
+                name='Run',
+                width=bar_width,
+                marker=dict(color='red'),
+                base=[pass_percentage * average_yard],
+                hovertemplate=f"Run: {run_percentage:.1%}<br>Avg Yards: {average_yard:.1f}<extra></extra>"
+            ))
+            first_run_bar = False
+        else:
+            data.append(go.Bar(
+                x=[team['TM']],
+                y=[run_percentage * average_yard],
+                width=bar_width,
+                marker=dict(color='red'),
+                base=[pass_percentage * average_yard],
+                showlegend=False,
+                hovertemplate=f"Run: {run_percentage:.1%}<br>Avg Yards: {average_yard:.1f}<extra></extra>"
+        ))
+    layout = go.Layout(
+    barmode='stack',
+    title='Average Yards on 1st Down by Team',
+    xaxis=dict(title='Teams'),
+    yaxis=dict(title='Average Yards on 1st Down'),
+    legend=dict(
+        x=1,  # Position the legend outside the plot area on the right
+        y=1,     # Align the legend with the top of the plot
+        bordercolor="Black",
+        borderwidth=2
+    )
+            )
+
+    return {'data': data, 'layout': layout}
 # Define the layout of the app
 app.layout = html.Div([
     dcc.Dropdown(
-        id='week-dropdown',
+        id='week-dropdown-scatter',
         options=[
             {'label': f'Week {week}', 'value': week}
             for week in range(1, 22)  # Assuming you have 17 weeks of data
@@ -160,7 +242,17 @@ app.layout = html.Div([
     dcc.RadioItems(options=['Points', 'Yards'],
                        value='Yards',
                        inline=True,
-                       id='my-radio-buttons-final')
+                       id='radio-scatter'
+    ),
+    dcc.Dropdown(
+        id='week-dropdown-first-down',  # Unique ID for the second chart dropdown
+        options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],  # Assuming 21 weeks
+        value=1  # Default value
+    ),
+    
+    # Second chart (scatter or line chart)
+    dcc.Graph(id='first-down')
+    
     ])
 
 

@@ -31,7 +31,7 @@ def update_scatter_plot(selected_week, selected_metric):
     # Choose the plot based on the selected metric
     if selected_metric == 'Points':
         # Define the path to the CSV file for the selected week
-        csv_path = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/scoring_breakdown.csv"
+        csv_path = f"data/week_{selected_week}_2023/scoring_breakdown.csv"
         # Check if the file exists before attempting to read it
         if os.path.exists(csv_path):
             # Read the data from the CSV file for the selected week
@@ -78,8 +78,8 @@ def update_scatter_plot(selected_week, selected_metric):
 
         return fig_points
     else:
-        csv_path_team = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/net_offence.csv"
-        csv_path_opp = f"//Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/opponent_net_offence.csv"
+        csv_path_team = f"data/week_{selected_week}_2023/net_offence.csv"
+        csv_path_opp = f"data/week_{selected_week}_2023/opponent_net_offence.csv"
     # Check if the file exists before attempting to read it
         if os.path.exists(csv_path_team):
             # Read the data from the CSV file for the selected week
@@ -141,10 +141,8 @@ def update_scatter_plot(selected_week, selected_metric):
     
 def update_chart(week_number):
     # Load data for the selected week
-    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/first_down_offence.csv'
+    filename = f'data/week_{week_number}_2023/first_down_offence.csv'
     df = pd.read_csv(filename)
-    filename_standings = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/game_stat_trends.csv'
-    df_standings = pd.read_csv(filename_standings)
     # Perform the same data processing as before
     df['1st_down_pass_calls'] = pd.to_numeric(df['1st_down_pass_calls'], errors='coerce')
     df['1st_down_plays'] = pd.to_numeric(df['1st_down_plays'], errors='coerce')

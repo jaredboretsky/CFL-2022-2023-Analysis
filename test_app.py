@@ -14,7 +14,7 @@ import base64
 import random
 
 
-# In[17]:
+# In[22]:
 
 
 # Initialize Dash app
@@ -31,7 +31,7 @@ def update_scatter_plot(selected_week, selected_metric):
     # Choose the plot based on the selected metric
     if selected_metric == 'Points':
         # Define the path to the CSV file for the selected week
-        csv_path = f"data/week_{selected_week}_2023/scoring_breakdown.csv"
+        csv_path = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/scoring_breakdown.csv"
         # Check if the file exists before attempting to read it
         if os.path.exists(csv_path):
             # Read the data from the CSV file for the selected week
@@ -78,8 +78,8 @@ def update_scatter_plot(selected_week, selected_metric):
 
         return fig_points
     else:
-        csv_path_team = f"data/week_{selected_week}_2023/net_offence.csv"
-        csv_path_opp = f"data/week_{selected_week}_2023/opponent_net_offence.csv"
+        csv_path_team = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/net_offence.csv"
+        csv_path_opp = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/opponent_net_offence.csv"
     # Check if the file exists before attempting to read it
         if os.path.exists(csv_path_team):
             # Read the data from the CSV file for the selected week
@@ -141,7 +141,7 @@ def update_scatter_plot(selected_week, selected_metric):
     
 def update_first_down(week_number):
     # Load data for the selected week
-    filename = f'data/week_{week_number}_2023/first_down_offence.csv'
+    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/first_down_offence.csv'
     df = pd.read_csv(filename)
     # Perform the same data processing as before
     df['1st_down_pass_calls'] = pd.to_numeric(df['1st_down_pass_calls'], errors='coerce')
@@ -231,7 +231,7 @@ def update_first_down(week_number):
     [Input('week-dropdown-agression', 'value')])
     
 def update_agression(week_number):
-    filename = f'agression_data.csv'
+    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/agression_data.csv'
     df = pd.read_csv(filename)
     df = df[df['Week'] == week_number]
     df['PF_per_game'] = df['PF']/df['GP']
@@ -264,10 +264,10 @@ def update_agression(week_number):
     
 def update_chart(week_number, heatmap_type):
     if heatmap_type == 'offense':
-        offense_file_name = f'data/week_{week_number}_2023/second_down_conversions.csv'
+        offense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/second_down_conversions.csv'
         df = pd.read_csv(offense_file_name)
     else:
-        defense_file_name = f'data/week_{week_number}_2023/opponent_second_down_conversions.csv'
+        defense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/opponent_second_down_conversions.csv'
         df = pd.read_csv(defense_file_name)
     
     # Create two separate dataframes
@@ -339,7 +339,7 @@ def update_chart(week_number, heatmap_type):
     return fig
 
 def create_big_play_analysis_graph():
-    df = pd.read_csv('data/week_21_2023/big_play_analysis.csv')
+    df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/big_play_analysis.csv')
     df.drop(9, inplace=True)
     
     df['Offensive_Cumsum'] = df['Total']
@@ -554,6 +554,298 @@ def create_big_play_analysis_graph():
     )
     return fig
 # Define the layout of the app
+Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
+@app.callback(
+    Output('kicking', 'figure'),
+    [Input('team-dropdown-kicking', 'value'),
+     Input('kick-type', 'value')]
+)
+
+def update_kicking(Team, kick_type):
+    IMAGE_FILENAME1 = '/Users/jaredboretsky/Downloads/CFL_Field2.png'
+    image1 = base64.b64encode(open(IMAGE_FILENAME1, 'rb').read())
+    if kick_type == 'kickoffs':   
+        fig_kickoff = go.Figure(data=[go.Bar(x=[0,1,2], y=[0, 0, 0])], layout_title_text="Native Plotly rendering in Dash")
+        fig_kickoff.add_layout_image(
+            dict(
+                source='data:image/png;base64,{}'.format(image1.decode()),
+                xref="x",
+                yref="paper",
+                x=0, y=1,
+                sizex=150,
+                sizey=2,
+                opacity=0.5,
+                layer="below"
+            )
+        )
+
+        fig_kickoff.update_layout(template="plotly_white")
+
+        file_path_kickoff = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/kickoff_analysis.csv'
+        df_kickoff = pd.read_csv(file_path_kickoff)
+
+        if not df_kickoff[df_kickoff['Team'] == Team].empty:
+            average_Ydl = df_kickoff[df_kickoff['Team'] == Team]['Oppt_start_Av_YL'].iloc[0]  # Use mean() for aggregation
+            yard_start_line = 130 - average_Ydl
+            avg_value = df_kickoff[df_kickoff['Team'] == Team]['Regular_K/Os_Avg'].iloc[0]
+            returns_40 = df_kickoff[df_kickoff['Team'] == Team]['Oppt_returns_40+'].iloc[0]
+        else:
+            print("Kickoff didn't work" + Team)
+        x_axis_range = [0, 152]  # Adjust min_x and max_x as needed
+        y_axis_range = [0, 12]  # Adjust min_y and max_y as needed
+
+        # Adding lines for  opponent yard start line
+        fig_kickoff.add_shape(
+            type="line",
+            x0=yard_start_line, 
+            y0=-.1, 
+            x1=yard_start_line, 
+            y1=1,
+            line=dict(color="RoyalBlue", width=3),
+            xref="x", yref="paper",
+            name = "Opponent Average Starting Yard Line"
+        )
+        #adding line for average KO length
+        fig_kickoff.add_shape(type="line",
+            x0= 50,  # Starting at the 30 yard line
+            y0= 6,
+            y1= 6,
+            x1= 40 + (avg_value),  # Ending at average net yards from the 50
+            line=dict(color="Green", width=4),
+            xref="x", yref="y",
+            name = "Average Kickoff Length"
+                
+        )
+        
+        #add markers for returns 40+ yards:
+        # Add scatter points for returns of 40+ yards
+        max_x = 60  # Maximum x-coordinate for scatter points
+        min_x = 70  # Minimum x-coordinate for scatter points
+        max_y = 9.5# Maximum y-coordinate for scatter points
+        min_y = 3.5
+        spread_x_factor = (max_x - min_x) / returns_40  # Factor to spread points horizontally
+        spread_y_factor = (max_y - min_y) / returns_40  # Factor to spread points vertically
+
+        for i in range(int(returns_40)):
+            x_coordinate = min_x + i * spread_x_factor  # Spread points evenly across x-axis
+            y_coordinate = min_y + i * spread_y_factor  # Spread points evenly across y-axis
+            fig_kickoff.add_trace(go.Scatter(
+                x=[x_coordinate],
+                y=[y_coordinate],  
+                marker=dict(color="Red", size=12),
+                mode="markers",
+                name="40+ Yard Returns"
+                ))
+        #Set fixed axis ranges
+        fig_kickoff.update_xaxes(range=x_axis_range, showticklabels=False)
+        fig_kickoff.update_yaxes(range=y_axis_range, showticklabels=False)
+        
+        return fig_kickoff
+    
+    else:
+        fig_punts = go.Figure(data=[go.Bar(x=[0,1,2], y=[0, 0, 0])], layout_title_text="Native Plotly rendering in Dash")
+        
+        fig_punts.add_layout_image(
+            dict(
+                source='data:image/png;base64,{}'.format(image1.decode()),
+                xref="x",
+                yref="paper",
+                x=0, y=1,
+                sizex=150,
+                sizey=2,
+                opacity=0.5,
+                layer="below"
+            )
+        )
+
+        fig_punts.update_layout(template="plotly_white")
+        
+        file_path_punting = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/punting_analysis.csv'
+        df_punt = pd.read_csv(file_path_punting)
+        if not df_punt[df_punt['Team'] == Team].empty:
+            adjusted_avg_value = df_punt[df_punt['Team'] == Team]['Adjusted_Avg'].iloc[0]
+            inside_10 = df_punt[df_punt['Team'] == Team]['I10'].iloc[0]
+            returns_30 = df_punt[df_punt['Team'] == Team]['Oppt_returns_30+'].iloc[0]
+            
+        else:
+            print("punt didn't work" + Team)
+        
+        x_axis_range = [0, 152]  # Adjust min_x and max_x as needed
+        y_axis_range = [0, 12]  # Adjust min_y and max_y as needed
+        
+        start_x = 60
+        end_x = 60 + adjusted_avg_value
+
+        # Add a rectangle to represent the net yardage
+        fig_punts.add_shape(type="rect",
+            x0=start_x, y0=-0.2,
+            x1=end_x, y1=1,
+            line=dict(color="Blue"),
+            fillcolor="LightBlue",
+            opacity=0.3,
+            xref="x", yref="paper",
+            name = "Adjusted Net Punt Yardage"
+        )
+        
+        max_x_inside_10 = 130  # Maximum x-coordinate for scatter points
+        min_x_inside_10 = 120  # Minimum x-coordinate for scatter points
+        max_y = 9.5# Maximum y-coordinate for scatter points
+        min_y = 0.5
+        spread_x_factor_inside_10 = (max_x_inside_10 - min_x_inside_10) / inside_10  # Factor to spread points horizontally
+        spread_y_factor_inside_10 = (max_y - min_y) / inside_10  # Factor to spread points vertically
+
+        for i in range(int(inside_10)):
+            x_coordinate = min_x_inside_10 + i * spread_x_factor_inside_10  # Spread points evenly across x-axis
+            y_coordinate = min_y + i * spread_y_factor_inside_10  # Spread points evenly across y-axis
+            fig_punts.add_trace(go.Scatter(
+                x=[x_coordinate],
+                y=[y_coordinate],  
+                marker=dict(color="Green", size=12),
+                mode="markers",
+                name="Inside 10"
+                ))
+        min_x_returns_30 = 55  # Maximum x-coordinate for scatter points
+        max_x_returns_30 = 45  # Minimum x-coordinate for scatter points
+        spread_x_factor_returns_30 = (max_x_returns_30 - min_x_returns_30) / returns_30  # Factor to spread points horizontally
+        spread_y_factor_returns_30 = (max_y - min_y) / returns_30  # Factor to spread points vertically
+
+        for i in range(int(returns_30)):
+            x_coordinate = min_x_returns_30 + i * spread_x_factor_returns_30  # Spread points evenly across x-axis
+            y_coordinate = min_y + i * spread_y_factor_returns_30  # Spread points evenly across y-axis
+            fig_punts.add_trace(go.Scatter(
+                x=[x_coordinate],
+                y=[y_coordinate],  
+                marker=dict(color="Red", size=12),
+                mode="markers",
+                name="returns 30"
+                ))
+        #Set fixed axis ranges
+        fig_punts.update_xaxes(range=x_axis_range, showticklabels=False)
+        fig_punts.update_yaxes(range=y_axis_range, showticklabels=False)
+    
+        return fig_punts
+    
+@app.callback(
+    Output('rushing-passing', 'figure'),
+    [Input('offense-defense-selector', 'value'),
+     Input('rushing-passing-selector', 'value')
+    ]
+)
+def update_graph(off_def, rush_pass):  
+    dfs = []
+
+# Loop through week numbers
+    for week in range(1, 22):  # Adjust the range based on your week numbers
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/rushing_analysis.csv'
+        week_df = pd.read_csv(file_path)
+        week_df['Week'] = week
+        dfs.append(week_df)
+    # Concatenate all DataFrames into one
+    combined_df_rushing = pd.concat(dfs, ignore_index=True)
+    combined_df_rushing = combined_df_rushing[combined_df_rushing['Team'] != 'CFL']
+
+    dfs = []
+    for week in range(1, 22):  # Adjust the range based on your week numbers
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/passing_analysis_base_data.csv'
+        week_df = pd.read_csv(file_path)
+        week_df['Week'] = week
+        dfs.append(week_df)
+    # Concatenate all DataFrames into one
+    combined_df_passing = pd.concat(dfs, ignore_index=True)
+    combined_df_passing = combined_df_passing[combined_df_passing['Team'] != 'CFL']
+
+    dfs = []
+    for week in range(1, 22):  # Adjust the range based on your week numbers
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/opponent_passing_analysis_base_data.csv'
+        week_df = pd.read_csv(file_path)
+        week_df['Week'] = week
+        dfs.append(week_df)
+    # Concatenate all DataFrames into one
+    combined_df_opponent_passing = pd.concat(dfs, ignore_index=True)
+    combined_df_opponent_passing = combined_df_opponent_passing[combined_df_opponent_passing['Team'] != 'CFL']
+
+
+
+    # Function to clean and convert 'Yards' column to numeric
+    def clean_and_convert(df, column_name):
+        # Inspect unique values (optional step for troubleshooting)
+        # print(df[column_name].unique())
+
+        # Replace any non-numeric characters (if any) and convert to float
+        df[column_name] = df[column_name].replace('[^0-9.]', '', regex=True).astype(float)
+
+        # Fill NaNs with 0 (if appropriate)
+        df[column_name].fillna(0, inplace=True)
+
+        return df
+
+    # Apply the function to each DataFrame
+    combined_df_rushing = clean_and_convert(combined_df_rushing, 'Yards')
+    combined_df_rushing = clean_and_convert(combined_df_rushing, 'Opp_rush_Yards')
+    combined_df_passing = clean_and_convert(combined_df_passing, 'Yards')
+    combined_df_opponent_passing = clean_and_convert(combined_df_opponent_passing, 'Yards')
+
+
+    pivot_rush_data_offense = combined_df_rushing.pivot_table(
+        index='Week', 
+        columns='Team', 
+        values='Yards', 
+        aggfunc='sum'
+    ).fillna(0)
+
+    pivot_rush_data_defense = combined_df_rushing.pivot_table(
+        index='Week', 
+        columns='Team', 
+        values='Opp_rush_Yards', 
+        aggfunc='sum'
+    ).fillna(0)
+
+    pivot_pass_data_offense = combined_df_passing.pivot_table(
+        index='Week', 
+        columns='Team', 
+        values='Yards', 
+        aggfunc='sum'
+    ).fillna(0)
+
+    pivot_pass_data_defense = combined_df_opponent_passing.pivot_table(
+        index='Week', 
+        columns='Team', 
+        values='Yards', 
+        aggfunc='sum'
+    ).fillna(0)
+    
+    if rush_pass == 'Rushing':
+        if off_def == 'Offense':
+            data = pivot_rush_data_offense
+        else:
+            data = pivot_rush_data_defense
+    else:
+        if off_def == 'Offense':
+            data = pivot_pass_data_offense
+        else:
+            data = pivot_pass_data_defense
+        # Create and return the figure
+    fig = go.Figure()
+    for team in data.columns:
+        fig.add_trace(go.Scatter(
+            x=data.index, 
+            y=data[team], 
+            mode='lines+markers',
+            name=team
+        )
+    )
+    
+    fig.update_layout(
+        title='Cumulative Rushing Yards by Team Over the Season',
+        xaxis_title='Week',
+        yaxis_title='Cumulative Rushing Yards',
+        hovermode='x unified',
+        width=950,
+        height=600
+        )
+
+    return fig
+
 app.layout = html.Div([
     dcc.Dropdown(
         id='week-dropdown-scatter',
@@ -603,7 +895,38 @@ app.layout = html.Div([
     dcc.Graph(
         id='big-play',
         figure=create_big_play_analysis_graph()  # Call the function here
-    )
+    ),
+    dcc.Dropdown(
+        id='team-dropdown-kicking',
+        options=[{'label': f'Team {Team}', 'value': Team} for Team in Teams],  # Assuming 21 weeks
+        value='BC'  # Default value
+    ),
+    dcc.RadioItems(
+        id='kick-type',
+        options=[
+            {'label': 'Kickoffs', 'value': 'kickoffs'},
+            {'label': 'Punts', 'value': 'punts'}
+        ],
+        value='punts'  # Default value
+    ),
+    dcc.Graph(id='kicking'),
+    dcc.RadioItems(
+        id='offense-defense-selector',
+        options=[
+            {'label': 'Offense', 'value': 'Offense'},
+            {'label': 'Defense', 'value': 'Defense'}
+        ],
+        value='Offense'  # Default value
+    ),
+    dcc.Dropdown(
+        id='rushing-passing-selector',
+        options=[
+            {'label': 'Rushing', 'value': 'Rushing'},
+            {'label': 'Passing', 'value': 'Passing'}
+        ],
+        value='Rushing'
+    ),
+    dcc.Graph(id='rushing-passing')
 ])
 
 if __name__ == '__main__':

@@ -1118,7 +1118,8 @@ def update_graph(off_def):
         )
     }
 
-app.layout = html.Div([
+def serve_layout():
+    return html.Div([
     
 #     style={'font-family': 'Arial, sans-serif', 'background-color': '#f4f4f2', 'padding': '20px'},
     # Title
@@ -1250,6 +1251,8 @@ app.layout = html.Div([
         html.P("Developed by Jared Boretsky", style={'text-align': 'center', 'color': '#2a3f5f'})
     ], style={'padding': '10px', 'background-color': '#e8eaf6'})
 ],style={'font-family': 'Raleway:Lato', 'color': '#003366', 'background-color': '#8FA08A', 'padding': '20px'})
+
+app.layout = serve_layout
 
 if __name__ == '__main__':
     app.run_server(debug=True)

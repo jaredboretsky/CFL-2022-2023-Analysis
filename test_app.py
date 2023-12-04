@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 from dash import Dash, html, dash_table, dcc, callback, Output, Input
@@ -14,7 +14,7 @@ import base64
 import random
 
 
-# In[26]:
+# In[53]:
 
 
 # Initialize Dash app
@@ -23,20 +23,34 @@ server = app.server  # This exposes the Flask server for Gunicorn to use
 # Define callback to update the scatter plot based on selected week
 @app.callback(
     Output('scatter-plot', 'figure'),
-    [Input('week-dropdown-scatter', 'value'),
+    [Input('week-slider-scatter', 'value'),
      Input('radio-scatter', 'value')])
 
 def update_scatter_plot(selected_week, selected_metric):
     
+    team_color_map = {
+        'BC': 'darkorange',   # Replace 'Team1', 'Team2', etc. with actual team names
+        'CGY': 'tomato',
+        'EDM': 'lightgreen',
+        'HAM': 'yellow',   # Replace 'Team1', 'Team2', etc. with actual team names
+        'MTL': 'maroon',
+        'OTT': 'black',
+        'SSK': 'forestgreen',   # Replace 'Team1', 'Team2', etc. with actual team names
+        'TOR': 'royalblue',
+        'WPG': 'navy'
+        # Add more teams and their colors here
+    }
+    
     # Choose the plot based on the selected metric
     if selected_metric == 'Points':
         # Define the path to the CSV file for the selected week
-        csv_path = f"data/week_{selected_week}_2023/scoring_breakdown.csv"
+        csv_path = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/scoring_breakdown.csv"
+
         # Check if the file exists before attempting to read it
         if os.path.exists(csv_path):
             # Read the data from the CSV file for the selected week
             df = pd.read_csv(csv_path)
-            df = df.drop(9)
+            df = df = df.drop(9)
             numeric_columns = ['PF', 'PA']
             for col in numeric_columns:
                 if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
@@ -47,30 +61,66 @@ def update_scatter_plot(selected_week, selected_metric):
             df = pd.DataFrame(columns=['Team', 'PF', 'PA'])  # Modify columns as needed
         df['Point Differential'] = df['PF'] - df['PA']
         # Rest of the code to create and customize the scatter plot
-        padding = 5  # Adjust this padding value as needed
+        padding = 10  # Adjust this padding value as needed
         x_min, x_max = df['PF'].min() - padding, df['PF'].max() + padding
         y_min, y_max = df['PA'].min() - padding, df['PA'].max() + padding
 
         fig_points = px.scatter(
             df, 
             x='PF', 
-            y='PA', 
-            text='Team', 
+            y='PA',  
             color='Team',
+            color_discrete_map=team_color_map,
             labels={'PF': 'Points For', 'PA': 'Points Against', 'Team': 'Team'}, 
-            hover_data={'Point Differential': True} 
+            hover_data={'Point Differential': True},
+            custom_data=['Team', 'Point Differential']
         )
+        logo_dir = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Logos/'
+        Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
+        x_range = df['PF'].max() - df['PF'].min()
+        y_range = df['PA'].max() - df['PA'].min()
+        # Set a relative size for the images (e.g., 5% of the data range)
+        relative_size_x = 0.15 * x_range
+        relative_size_y = 0.15 * y_range
+        for team in Teams:
+            team_logo_path = os.path.join(logo_dir, f'{team}_logo.png')
+            if os.path.exists(team_logo_path):  # Check if the file exists
+                with open(team_logo_path, 'rb') as image_file:
+                    image_encoded = base64.b64encode(image_file.read()).decode()
 
-# Customize the hover template to include the 'Yard Differential'
+        # Get the coordinates for the team
+                team_data = df[df['Team'] == team]
+                if not team_data.empty:  # Check if team data is not empty
+                    x_value = team_data['PF'].values[0]
+                    y_value = team_data['PA'].values[0]
+                    fig_points.add_layout_image(
+                        source=f'data:image/png;base64,{image_encoded}',
+                        x=x_value,  # X-coordinate based on Points For
+                        y=y_value,  # Y-coordinate based on Points Against
+                        xref="x",
+                        yref="y",
+                        xanchor='center',
+                        yanchor='middle',
+                        sizex=relative_size_x,  # Adjust the size of the logos as needed
+                        sizey=relative_size_y,
+                        opacity=1,
+                        layer="above"
+                    )
+                else:
+                    print(f"No data found for team {team}")
+            else:
+                print(f"Logo file not found for team {team}")
+        
         fig_points.update_traces(
-            hovertemplate='<b>Team:</b> %{text}<br><b>Points For:</b> %{x}<br><b>Points Against:</b> %{y}<br><b>Point Differential:</b> %{customdata[0]}<extra></extra>'
+            marker=dict(opacity=0),
+            hovertemplate='<b>Team:</b> %{customdata[0]}<br><b>Yards For:</b> %{x}<br><b>Yards Against:</b> %{y}<br><b>Yard Differential:</b> %{customdata[1]}<extra></extra>'
         )
-    
         fig_points.update_layout(
-            title=f'CFL: Points For vs Points Against (Week {selected_week})',
+            title=f'CFL: Cumulative Points For vs Cumulative Points Against (Week {selected_week})',
+            title_x = 0.5,
             xaxis_title='Points For',
             yaxis_title='Points Against',
-            showlegend=True,
+            showlegend=False,
             legend_title_text='Team',
             xaxis=dict(range=[x_min, x_max]),
             yaxis=dict(range=[y_min, y_max])
@@ -78,8 +128,8 @@ def update_scatter_plot(selected_week, selected_metric):
 
         return fig_points
     else:
-        csv_path_team = f"data/week_{selected_week}_2023/net_offence.csv"
-        csv_path_opp = f"data/week_{selected_week}_2023/opponent_net_offence.csv"
+        csv_path_team = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/net_offence.csv"
+        csv_path_opp = f"//Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/opponent_net_offence.csv"
     # Check if the file exists before attempting to read it
         if os.path.exists(csv_path_team):
             # Read the data from the CSV file for the selected week
@@ -105,30 +155,68 @@ def update_scatter_plot(selected_week, selected_metric):
         
         df = pd.merge(df_team, df_opp, on='Team', how='inner')
         df['Yard Differential'] = df['Yards For'] - df['Yards Against']      
-        padding = 50  # Adjust this padding value as needed
+        padding = 100  # Adjust this padding value as needed
         x_min, x_max = df['Yards For'].min() - padding, df['Yards For'].max() + padding
         y_min, y_max = df['Yards Against'].min() - padding, df['Yards Against'].max() + padding
 
         fig_yards = px.scatter(
             df, 
             x='Yards For', 
-            y='Yards Against', 
-            text='Team', 
+            y='Yards Against',  
             color='Team',
+            color_discrete_map=team_color_map,
             labels={'Yards For': 'Yards For', 'Yards Against': 'Yards Against', 'Team': 'Team'}, 
-            hover_data={'Yard Differential': True} 
+            hover_data={'Yard Differential': True},
+            custom_data = ['Team', 'Yard Differential']
         )
+        logo_dir = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Logos/'
+        Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
+        x_range = df['Yards For'].max() - df['Yards For'].min()
+        y_range = df['Yards Against'].max() - df['Yards Against'].min()
+        # Set a relative size for the images (e.g., 5% of the data range)
+        relative_size_x = 0.15 * x_range
+        relative_size_y = 0.15 * y_range
+        for team in Teams:
+            team_logo_path = os.path.join(logo_dir, f'{team}_logo.png')
+            if os.path.exists(team_logo_path):  # Check if the file exists
+                with open(team_logo_path, 'rb') as image_file:
+                    image_encoded = base64.b64encode(image_file.read()).decode()
 
-# Customize the hover template to include the 'Yard Differential'
+        # Get the coordinates for the team
+                team_data = df[df['Team'] == team]
+                if not team_data.empty:  # Check if team data is not empty
+                    x_value = team_data['Yards For'].values[0]
+                    y_value = team_data['Yards Against'].values[0]
+                    fig_yards.add_layout_image(
+                        source=f'data:image/png;base64,{image_encoded}',
+                        x=x_value,  # X-coordinate based on Points For
+                        y=y_value,  # Y-coordinate based on Points Against
+                        xref="x",
+                        yref="y",
+                        xanchor='center',
+                        yanchor='middle',
+                        sizex=relative_size_x,  # Adjust the size of the logos as needed
+                        sizey=relative_size_y,
+                        opacity=1,
+                        layer="above"
+                    )
+                else:
+                    print(f"No data found for team {team}")
+            else:
+                print(f"Logo file not found for team {team}")
+        # Customize the hover template to include the 'Yard Differential'
         fig_yards.update_traces(
-            hovertemplate='<b>Team:</b> %{text}<br><b>Yards For:</b> %{x}<br><b>Yards Against:</b> %{y}<br><b>Yard Differential:</b> %{customdata[0]}<extra></extra>'
+            marker=dict(opacity=0),
+            hovertemplate='<b>Team:</b> %{customdata[0]}<br><b>Yards For:</b> %{x}<br><b>Yards Against:</b> %{y}<br><b>Yard Differential:</b> %{customdata[1]}<extra></extra>'
         )
-    
+        
+
         fig_yards.update_layout(
-            title=f'CFL: Yards For vs Yards Against (Week {selected_week})',
+            title=f'CFL: Cumulative Yards For vs Cumulative Yards Against (Week {selected_week})',
+            title_x=0.5,
             xaxis_title='Yards For',
             yaxis_title='Yards Against',
-            showlegend=True,
+            showlegend=False,
             legend_title_text='Team',
             xaxis=dict(range=[x_min, x_max]),
             yaxis=dict(range=[y_min, y_max])
@@ -141,8 +229,9 @@ def update_scatter_plot(selected_week, selected_metric):
     
 def update_first_down(week_number):
     # Load data for the selected week
-    filename = f'data/week_{week_number}_2023/first_down_offence.csv'
+    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/first_down_offence.csv'
     df = pd.read_csv(filename)
+    df = df.drop(9)
     # Perform the same data processing as before
     df['1st_down_pass_calls'] = pd.to_numeric(df['1st_down_pass_calls'], errors='coerce')
     df['1st_down_plays'] = pd.to_numeric(df['1st_down_plays'], errors='coerce')
@@ -231,7 +320,7 @@ def update_first_down(week_number):
     [Input('week-dropdown-agression', 'value')])
     
 def update_agression(week_number):
-    filename = f'agression_data.csv'
+    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/agression_data.csv'
     df = pd.read_csv(filename)
     df = df[df['Week'] == week_number]
     df['PF_per_game'] = df['PF']/df['GP']
@@ -248,7 +337,8 @@ def update_agression(week_number):
     }[t.name]))
     
     fig.update_layout(
-        title='Team Metrics by Week',
+        title='Agressive Plays and Points For per Team',
+        title_x=0.5,
         xaxis_title='Teams',
         yaxis_title='Values',
         legend_title='Legend',
@@ -259,20 +349,24 @@ def update_agression(week_number):
 
 @app.callback(
     Output('second-down', 'figure'),
-    [Input('week-dropdown-second-down', 'value'),
+    [Input('week-slider-second-down', 'value'),
      Input('heatmap-type', 'value')])
     
-def update_chart(week_number, heatmap_type):
+def update_second_down(week_number, heatmap_type):
     if heatmap_type == 'offense':
-        offense_file_name = f'data/week_{week_number}_2023/second_down_conversions.csv'
+        offense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/second_down_conversions.csv'
         df = pd.read_csv(offense_file_name)
     else:
-        defense_file_name = f'data/week_{week_number}_2023/opponent_second_down_conversions.csv'
+        defense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/opponent_second_down_conversions.csv'
         df = pd.read_csv(defense_file_name)
     
     # Create two separate dataframes
     df_percentages = df[['Team', '1-3_yds_%', '4-6_yds_%', '7+_yds_%']].set_index('Team')
     df_yards_to_go = df[['Team', 'Yds_to_go_Avg']].set_index('Team')
+    df_percentages.columns = ['2nd and Short<br>(1-3 Yards) Conversion Rate', 
+                          '2nd and Medium<br>(4-6 Yards) Conversion Rate', 
+                          '2nd and Long<br>(7+ Yards) Conversion Rate']
+    df_yards_to_go.columns = ['Average Yards<br>To Go on 2nd Down']
     
     # Create two separate heatmaps
     fig = make_subplots(
@@ -312,6 +406,7 @@ def update_chart(week_number, heatmap_type):
             coloraxis1=dict(colorscale='Blues', colorbar=dict(title='Percentage', x=-.2)),  # Color scale and legend for 1st heatmap
             coloraxis2=dict(colorscale='Greens', colorbar=dict(title='Yards to Go', x=1), reversescale=True),   # Color scale and legend for 2nd heatmap
             title_text="Team Efficiency on 2nd Down",
+            title_x=0.5,
             showlegend=False
         )
     else:
@@ -319,12 +414,16 @@ def update_chart(week_number, heatmap_type):
             coloraxis1=dict(colorscale='Blues', colorbar=dict(title='Percentage', x=-.2), reversescale=True),  # Color scale and legend for 1st heatmap
             coloraxis2=dict(colorscale='Greens', colorbar=dict(title='Yards to Go', x=1)),   # Color scale and legend for 2nd heatmap
             title_text="Opponent Efficiency on 2nd Down",
+            title_x=0.5,
             showlegend=False
         )
 
 # Move the column names to the top
     fig.update_xaxes(side="top", row=1, col=1)
     fig.update_xaxes(side="top", row=1, col=2)
+    # Update x-axis properties to adjust label angle and alignment
+    fig.update_xaxes(tickangle=0, tickfont=dict(size=10), row=1, col=1)
+    fig.update_xaxes(tickangle=0, tickfont=dict(size=10), row=1, col=2)
 
     
 # Create the Dash layout using the combined figure
@@ -338,8 +437,8 @@ def update_chart(week_number, heatmap_type):
     
     return fig
 
-def create_big_play_analysis_graph():
-    df = pd.read_csv('data/week_21_2023/big_play_analysis.csv')
+def create_big_play_analysis():
+    df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/big_play_analysis.csv')
     df.drop(9, inplace=True)
     
     df['Offensive_Cumsum'] = df['Total']
@@ -366,92 +465,92 @@ def create_big_play_analysis_graph():
     fig = go.Figure(
         data=[
             go.Bar(
-                name='Rushes (20+ Yards)',
-                y=df['Team'],
-                x=df['20+_Rush'],
-                orientation='h',
-                base = offset,
-                marker={'color': 'blue'},
-                hoverinfo='text',
-                text=['Team: {}<br>Rushes (20+ Yards): {}<br>Total Big Plays: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['20+_Rush'], df['Offensive_Cumsum'])]
-            ),
-            go.Bar(
                 name='Passes (30+ Yards)',
                 y=df['Team'],
                 x=df['30+_Pass'],
                 orientation='h',
-                base=df['20+_Rush']+offset,
+                base=offset,
                 marker={'color': 'red'},
-                hoverinfo='text',
-                text=['Team: {}<br>Passes (30+ Yards): {}<br>Total Big Plays: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['30+_Pass'], df['Offensive_Cumsum'])]
+                hovertemplate=[
+                    f'Team: {team}<br>Passes: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['30+_Pass'], df['Offensive_Cumsum'])
+                ]
             ),
             go.Bar(
-                name='Punt Returns',
+                name='Rushes (20+ Yards)',
+                y=df['Team'],
+                x=df['20+_Rush'],
+                orientation='h',
+                base = offset+df['30+_Pass'],
+                marker={'color': 'blue'},
+                hovertemplate=[
+                    f'Team: {team}<br>Rushes: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['20+_Rush'], df['Offensive_Cumsum'])
+                ]
+        ),
+            go.Bar(
+                name='Punt Returns (30+ Yards)',
                 y=df['Team'],
                 x=df['Punt_Rets'],
                 orientation='h',
                 base=df['20+_Rush']+df['30+_Pass']+offset,
                 marker={'color': 'Green'},
-                hoverinfo='text',
-                text=['Team: {}<br>Punt Returns: {}<br>Total Big Plays: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Punt_Rets'], df['Offensive_Cumsum'])]
+                hovertemplate=[
+                    f'Team: {team}<br>Punt Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Punt_Rets'], df['Offensive_Cumsum'])
+                ]
             ),
             go.Bar(
-                name='Kickoff Returns',
+                name='Kickoff Returns (40+ Yards)',
                 y=df['Team'],
                 x=df['K/O_Rets'],
-
                 orientation='h',
                 base=df['20+_Rush']+df['30+_Pass']+df['Punt_Rets']+offset,
                 marker={'color': 'Brown'},
-                hoverinfo='text',
-                text=['Team: {}<br>Kickoff Returns: {}<br>Total Big Plays: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['K/O_Rets'], df['Offensive_Cumsum'])]
+                hovertemplate=[
+                    f'Team: {team}<br>Kickoff Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['K/O_Rets'], df['Offensive_Cumsum'])
+                ]
             ),
             go.Bar(
-                name='Missed Field Goal Returns',
+                name='Missed Field Goal Returns (40+ Yards)',
                 y=df['Team'],
                 x=df['FGM_Rets'],
                 orientation='h',
                 base=df['20+_Rush']+df['30+_Pass']+df['Punt_Rets']+df['K/O_Rets']+offset,
                 marker={'color': 'Orange'},
-                hoverinfo='text',
-                text=['Team: {}<br>Missed Field Goal Returns: {}<br>Total Big Plays Plays: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['FGM_Rets'], df['Offensive_Cumsum'])]
-            ),
-            go.Bar(
-                name='Rushes (20+ Yards)',
-                y=df['Team'],
-                x=-df['Opp_off_20+_Rush'],
-                orientation='h',
-                base = -offset,
-                marker={'color': 'blue'},
-                hoverinfo='text',
-                text=['Team: {}<br>Rushes (20+ Yards) Allowed: {}<br>Total Big Plays Plays Allowed: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Opp_off_20+_Rush'], df['Defensive_Cumsum'])],
-                showlegend=False
+                hovertemplate=[
+                    f'Team: {team}<br>Missed Field Goal Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['FGM_Rets'], df['Offensive_Cumsum'])
+                ]
             ),
             go.Bar(
                 name='Passes (30+ Yards)',
                 y=df['Team'],
                 x=-df['Opp_off_30+_Pass'],
                 orientation='h',
-                base=-df['Opp_off_20+_Rush']-offset,
+                base=-offset,
                 marker={'color': 'red'},
-                hoverinfo='text',
-                text=['Team: {}<br>Passes (30+ Yards) Allowed: {}<br>Total Big Plays Plays Allowed: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Opp_off_30+_Pass'], df['Defensive_Cumsum'])],
+                hovertemplate=[
+                    f'Team: {team}<br>Passes: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Opp_off_30+_Pass'], df['Defensive_Cumsum'])
+                ],
                 showlegend=False
             ),
+            go.Bar(
+                name='Rushes (20+ Yards)',
+                y=df['Team'],
+                x=-df['Opp_off_20+_Rush'],
+                orientation='h',
+                base = -df['Opp_off_30+_Pass']-offset,
+                marker={'color': 'blue'},
+                hovertemplate=[
+                    f'Team: {team}<br>Rushes: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Opp_off_20+_Rush'], df['Defensive_Cumsum'])
+                ],
+                showlegend=False
+            ),
+
             go.Bar(
                 name='Punt Returns',
                 y=df['Team'],
@@ -459,10 +558,10 @@ def create_big_play_analysis_graph():
                 orientation='h',
                 base=-df['Opp_off_20+_Rush']-df['Opp_off_30+_Pass']-offset,
                 marker={'color': 'Green'},
-                hoverinfo='text',
-                text=['Team: {}<br>Punt Returns Allowed: {}<br>Total Big Plays Plays Allowed: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Opp_kick_Punt_Rets'], df['Defensive_Cumsum'])],
+                hovertemplate=[
+                    f'Team: {team}<br>Punt Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Opp_kick_Punt_Rets'], df['Defensive_Cumsum'])
+                ],
                 showlegend=False
             ),
             go.Bar(
@@ -472,10 +571,10 @@ def create_big_play_analysis_graph():
                 orientation='h',
                 base=-df['Opp_off_20+_Rush']-df['Opp_off_30+_Pass']-df['Opp_kick_Punt_Rets']-offset,
                 marker={'color': 'Brown'},
-                hoverinfo='text',
-                text=['Team: {}<br>Kickoff Returns Allowed: {}<br>Total Big Plays Plays Allowed: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Opp_kick_K/O_Rets'], df['Defensive_Cumsum'])],
+                hovertemplate=[
+                    f'Team: {team}<br>Kickoff Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Opp_kick_K/O_Rets'], df['Defensive_Cumsum'])
+                ],
                 showlegend=False
             ),
             go.Bar(
@@ -485,12 +584,12 @@ def create_big_play_analysis_graph():
                 orientation='h',
                 base=-df['Opp_off_20+_Rush']-df['Opp_off_30+_Pass']-df['Opp_kick_Punt_Rets']-df['Opp_kick_K/O_Rets']-offset,
                 marker={'color': 'Orange'},
-                hoverinfo='text',
-                text=['Team: {}<br>Missed Field Goal Returns Allowed: {}<br>Total Big Plays Plays Allowed: {}'
-                      .format(team, play, total) 
-                      for team, play, total in zip(df['Team'], df['Opp_kick_FGM_Ret'], df['Defensive_Cumsum'])],
+                hovertemplate=[
+                    f'Team: {team}<br>Missed Field Goal Returns: {play}<br>Total Big Plays: {total}<extra></extra>' 
+                    for team, play, total in zip(df['Team'], df['Opp_kick_FGM_Ret'], df['Defensive_Cumsum'])
+                ],
                 showlegend=False
-            )
+            ),
         ]
     )
 
@@ -562,10 +661,16 @@ Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
 )
 
 def update_kicking(Team, kick_type):
-    IMAGE_FILENAME1 = 'CFL_Field2.png'
+    IMAGE_FILENAME1 = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Field.png'
     image1 = base64.b64encode(open(IMAGE_FILENAME1, 'rb').read())
     if kick_type == 'kickoffs':   
-        fig_kickoff = go.Figure(data=[go.Bar(x=[0,1,2], y=[0, 0, 0])], layout_title_text="Native Plotly rendering in Dash")
+        fig_kickoff = go.Figure(
+            data=[go.Bar(x=[0, 1, 2], y=[0, 0, 0], showlegend=False)],
+            layout=go.Layout(
+                title_text="Kickoff Yard Position Analysis",
+                title_x=0.5  # Center the title
+            )
+        )
         fig_kickoff.add_layout_image(
             dict(
                 source='data:image/png;base64,{}'.format(image1.decode()),
@@ -581,7 +686,7 @@ def update_kicking(Team, kick_type):
 
         fig_kickoff.update_layout(template="plotly_white")
 
-        file_path_kickoff = 'data/week_21_2023/kickoff_analysis.csv'
+        file_path_kickoff = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/kickoff_analysis.csv'
         df_kickoff = pd.read_csv(file_path_kickoff)
 
         if not df_kickoff[df_kickoff['Team'] == Team].empty:
@@ -598,13 +703,21 @@ def update_kicking(Team, kick_type):
         fig_kickoff.add_shape(
             type="line",
             x0=yard_start_line, 
-            y0=-.1, 
+            y0=0, 
             x1=yard_start_line, 
             y1=1,
             line=dict(color="RoyalBlue", width=3),
             xref="x", yref="paper",
-            name = "Opponent Average Starting Yard Line"
+            name = "Opponent Average Starting Yard Line",
+            showlegend=False
         )
+        fig_kickoff.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='lines',
+            line=dict(color="RoyalBlue", width=4),
+            name="Opponent Average <br> Starting Yard Line"
+        ))
         #adding line for average KO length
         fig_kickoff.add_shape(type="line",
             x0= 50,  # Starting at the 30 yard line
@@ -616,7 +729,13 @@ def update_kicking(Team, kick_type):
             name = "Average Kickoff Length"
                 
         )
-        
+        fig_kickoff.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='lines',
+            line=dict(color="Green", width=4),
+            name="Average Kickoff Length"
+        ))
         #add markers for returns 40+ yards:
         # Add scatter points for returns of 40+ yards
         max_x = 60  # Maximum x-coordinate for scatter points
@@ -634,17 +753,30 @@ def update_kicking(Team, kick_type):
                 y=[y_coordinate],  
                 marker=dict(color="Red", size=12),
                 mode="markers",
-                name="40+ Yard Returns"
+                name="Opponent 40+ Yard Returns",
+                showlegend=False
                 ))
         #Set fixed axis ranges
+        fig_kickoff.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='markers',
+            line=dict(color="Red", width=4),
+            name="Opponent 40+ Yard Returns"
+        ))
         fig_kickoff.update_xaxes(range=x_axis_range, showticklabels=False)
         fig_kickoff.update_yaxes(range=y_axis_range, showticklabels=False)
         
         return fig_kickoff
     
     else:
-        fig_punts = go.Figure(data=[go.Bar(x=[0,1,2], y=[0, 0, 0])], layout_title_text="Native Plotly rendering in Dash")
-        
+        fig_punts = go.Figure(
+            data=[go.Bar(x=[0, 1, 2], y=[0, 0, 0], showlegend=False)],
+            layout=go.Layout(
+                title_text="Punting Yard Position Analysis",
+                title_x=0.5  # Center the title
+            )
+        )        
         fig_punts.add_layout_image(
             dict(
                 source='data:image/png;base64,{}'.format(image1.decode()),
@@ -660,7 +792,7 @@ def update_kicking(Team, kick_type):
 
         fig_punts.update_layout(template="plotly_white")
         
-        file_path_punting = 'data/week_21_2023/punting_analysis.csv'
+        file_path_punting = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/punting_analysis.csv'
         df_punt = pd.read_csv(file_path_punting)
         if not df_punt[df_punt['Team'] == Team].empty:
             adjusted_avg_value = df_punt[df_punt['Team'] == Team]['Adjusted_Avg'].iloc[0]
@@ -678,19 +810,26 @@ def update_kicking(Team, kick_type):
 
         # Add a rectangle to represent the net yardage
         fig_punts.add_shape(type="rect",
-            x0=start_x, y0=-0.2,
+            x0=start_x, y0=0,
             x1=end_x, y1=1,
             line=dict(color="Blue"),
             fillcolor="LightBlue",
             opacity=0.3,
             xref="x", yref="paper",
-            name = "Adjusted Net Punt Yardage"
+            name = "Adjusted Net Punt Yardage",
+            showlegend = False
         )
-        
+        fig_punts.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='lines',
+            line=dict(color="LightBlue", width=4),
+            name="Adjusted Net Punt Yardage <br> (Visualized from the 40)"
+        ))
         max_x_inside_10 = 130  # Maximum x-coordinate for scatter points
         min_x_inside_10 = 120  # Minimum x-coordinate for scatter points
-        max_y = 9.5# Maximum y-coordinate for scatter points
-        min_y = 0.5
+        max_y = 10# Maximum y-coordinate for scatter points
+        min_y = 2.5
         spread_x_factor_inside_10 = (max_x_inside_10 - min_x_inside_10) / inside_10  # Factor to spread points horizontally
         spread_y_factor_inside_10 = (max_y - min_y) / inside_10  # Factor to spread points vertically
 
@@ -702,8 +841,16 @@ def update_kicking(Team, kick_type):
                 y=[y_coordinate],  
                 marker=dict(color="Green", size=12),
                 mode="markers",
-                name="Inside 10"
+                name="Punts Inside Opponent's 10",
+                showlegend=False
                 ))
+        fig_punts.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='markers',
+            line=dict(color="Green", width=4),
+            name="Punts Inside Opponent's <br> 10 Yard Line"
+        ))
         min_x_returns_30 = 55  # Maximum x-coordinate for scatter points
         max_x_returns_30 = 45  # Minimum x-coordinate for scatter points
         spread_x_factor_returns_30 = (max_x_returns_30 - min_x_returns_30) / returns_30  # Factor to spread points horizontally
@@ -717,8 +864,16 @@ def update_kicking(Team, kick_type):
                 y=[y_coordinate],  
                 marker=dict(color="Red", size=12),
                 mode="markers",
-                name="returns 30"
+                name="Opponent 30+ Yard Returns",
+                showlegend=False
                 ))
+        fig_punts.add_trace(go.Scatter(
+            x=[None],
+            y=[None],
+            mode='markers',
+            line=dict(color="Red", width=4),
+            name="Opponent 30+ Yard Returns"
+        ))
         #Set fixed axis ranges
         fig_punts.update_xaxes(range=x_axis_range, showticklabels=False)
         fig_punts.update_yaxes(range=y_axis_range, showticklabels=False)
@@ -731,12 +886,13 @@ def update_kicking(Team, kick_type):
      Input('rushing-passing-selector', 'value')
     ]
 )
-def update_graph(off_def, rush_pass):  
+def update_rushing_passing(off_def, rush_pass):  
+    
+    custom_colors = ['darkorange', 'tomato', 'lightgreen', 'yellow', 'maroon', 'black', 'forestgreen', 'royalblue', 'navy']
+    
     dfs = []
-
-# Loop through week numbers
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'data/week_{week}_2023/rushing_analysis.csv'
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/rushing_analysis.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -746,7 +902,7 @@ def update_graph(off_def, rush_pass):
 
     dfs = []
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'data/week_{week}_2023/passing_analysis_base_data.csv'
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/passing_analysis_base_data.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -756,7 +912,7 @@ def update_graph(off_def, rush_pass):
 
     dfs = []
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'data/week_{week}_2023/opponent_passing_analysis_base_data.csv'
+        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/opponent_passing_analysis_base_data.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -826,22 +982,56 @@ def update_graph(off_def, rush_pass):
             data = pivot_pass_data_defense
         # Create and return the figure
     fig = go.Figure()
-    for team in data.columns:
+    for i, team in enumerate(data.columns):
         fig.add_trace(go.Scatter(
             x=data.index, 
             y=data[team], 
             mode='lines+markers',
-            name=team
+            name=team,
+            line=dict(color=custom_colors[i % len(custom_colors)])
         )
     )
-    
-    fig.update_layout(
-        title='Cumulative Rushing Yards by Team Over the Season',
-        xaxis_title='Week',
-        yaxis_title='Cumulative Rushing Yards',
-        hovermode='x unified',
-        width=950,
-        height=600
+    if rush_pass == 'Rushing':
+        if off_def == 'Offense':
+            fig.update_layout(
+                title='Cumulative Rushing Yards by Team Over the Season',
+                title_x=0.5,
+                xaxis_title='Week',
+                yaxis_title='Cumulative Rushing Yards',
+                hovermode='x unified',
+                width=850,
+                height=600
+            )
+        else:
+            fig.update_layout(
+                title='Cumulative Rushing Yards Against by Team Over the Season',
+                title_x=0.5,
+                xaxis_title='Week',
+                yaxis_title='Cumulative Rushing Yards',
+                hovermode='x unified',
+                width=850,
+                height=600
+            )
+    else:
+        if off_def == 'Offense':
+            fig.update_layout(
+                title='Cumulative Passing Yards by Team Over the Season',
+                title_x=0.5,
+                xaxis_title='Week',
+                yaxis_title='Cumulative Passing Yards',
+                hovermode='x unified',
+                width=850,
+                height=600
+            )
+        else:
+            fig.update_layout(
+            title='Cumulative Passing Yards Against by Team Over the Season',
+            title_x=0.5,
+            xaxis_title='Week',
+            yaxis_title='Cumulative Passing Yards',
+            hovermode='x unified',
+            width=850,
+            height=600
         )
 
     return fig
@@ -853,13 +1043,13 @@ def update_graph(off_def, rush_pass):
 
 def update_graph(off_def):
     if off_def == 'Offense':
-        filtered_df = pd.read_csv('data/week_21_2023/passing_analysis_range_data.csv')
+        filtered_df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/passing_analysis_range_data.csv')
         filtered_df = filtered_df.drop(9)
         filtered_df['0-9_yds_Att'] = pd.to_numeric(filtered_df['0-9_yds_Att'], errors='coerce')
         filtered_df['total_effic'] = [99.5, 83.8, 89.5, 87.0, 95.2, 82.1, 89.4, 104.1, 116.2]
 
     else:
-        filtered_df = pd.read_csv('data/week_20_2023/opponent_passing_analysis_range_data.csv')
+        filtered_df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_20_2023/opponent_passing_analysis_range_data.csv')
         filtered_df = filtered_df.drop(9)
         filtered_df['0-9_yds_Att'] = pd.to_numeric(filtered_df['0-9_yds_Att'], errors='coerce')
         filtered_df['total_effic'] = [89.9, 92.9, 104.0, 94.2, 83.4, 101.8, 105.6, 95.2, 81.7]
@@ -870,11 +1060,16 @@ def update_graph(off_def):
     for pass_type in pass_types:
         max_attempts = filtered_df[pass_type].max()
         filtered_df[f'{pass_type}_norm'] = (filtered_df[pass_type] / max_attempts) * 100
-
+    
     # Create traces for each range with normalized bubble sizes
     sorted_df = filtered_df.sort_values(by='total_effic', ascending=False)
     traces = []
     annotations = []
+    legend_names = {
+        '0-9_yds': 'Short Pass (0-9 Yards) Efficiency',
+        '10-19_yds': 'Medium Pass (10-19 Yards) Efficiency',
+        '20+_yds': 'Deep Pass (20+ Yards) Efficiency'
+    }
     for range in ['0-9_yds', '10-19_yds', '20+_yds']:
         sizes = filtered_df[f'{range}_Att_norm']
         traces.append(go.Scatter(
@@ -886,7 +1081,7 @@ def update_graph(off_def):
                 opacity=0.6,
                 line=dict(width=1, color='black')
             ),
-            name=f'{range} Efficiency',
+            name=legend_names[range],
             text=filtered_df['Team']
         ))
     
@@ -913,9 +1108,10 @@ def update_graph(off_def):
     return {
         'data': traces,
         'layout': go.Layout(
-            title='Efficiency vs Total Efficiency in Different Ranges',
-            xaxis=dict(title='Range-Specific Efficiency'),
-            yaxis=dict(title='Total Efficiency'),
+            title='Passing Efficiency by Team and by Depth',
+            title_x=0.5,
+            xaxis=dict(title='Efficiency by Depth'),
+            yaxis=dict(title='Overall Efficiency'),
             hovermode='closest',
             colorway=px.colors.qualitative.Plotly,
             annotations=annotations
@@ -923,97 +1119,144 @@ def update_graph(off_def):
     }
 
 app.layout = html.Div([
-    dcc.Dropdown(
-        id='week-dropdown-scatter',
-        options=[
-            {'label': f'Week {week}', 'value': week}
-            for week in range(1, 22)  # Assuming you have 17 weeks of data
-        ],
-        value=1,  # Default to Week 1
-        style={'width': '50%'}
-    ),
-    dcc.Graph(id='scatter-plot'),
-    dcc.RadioItems(options=['Points', 'Yards'],
+    
+#     style={'font-family': 'Arial, sans-serif', 'background-color': '#f4f4f2', 'padding': '20px'},
+    # Title
+    html.H1("CFL 2022-2023 Season Analysis", style={'text-align': 'center', 'color': '#2a3f5f', 'padding': '10px', 'background-color': 'white'}),
+
+    # Scatter Plot Section
+    html.Div([
+        dcc.Slider(
+            id='week-slider-scatter',
+            min=1,
+            max=21,
+            step=1,
+            value=1,
+            marks={i: f'Week {i}' for i in range(1, 22, 2)}
+        ),
+        dcc.RadioItems(options=['Points', 'Yards'],
                        value='Yards',
                        inline=True,
-                       id='radio-scatter'
-    ),
-    dcc.Dropdown(
-        id='week-dropdown-first-down',  # Unique ID for the second chart dropdown
-        options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],  # Assuming 21 weeks
-        value=1  # Default value
-    ),
+                       id='radio-scatter',
+                       style={'padding': '5px', 'margin': '10px'}
+        ),
+        dcc.Graph(id='scatter-plot'),
+        html.P("The scatter plot above shows points for and points against, as well as yards for and yards against for each team throughout the seaason. As the season goes in, we can see teams move in directions we would generally expect. On the points comparison chart, the two strongest teams, Toronto and Winnipeg, were firmly in the bottom right corner, both far ahead of the pack in terms of Point Differential. Similarly, the weakest teams, Ottawa, Edmonton and Sasketchewan were firmly in the upper right corner, indicating weak offensive and defensive performance. When looking at the yardage chart, we see generally similar placements. Noticeably, Toronto find themselves much closer to the centre in both offense and defence, suggesting their strong point differential might have been driven by some scoring luck or other factors, since they did not outgain their opponents to a similar level as Winnipeg", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
     
-    # Second chart (scatter or line chart)
-    dcc.Graph(id='first-down'),
+    # Rushing-Passing Section
+    html.Div([
+        dcc.RadioItems(
+            id='offense-defense-selector-rushing-passing',
+            options=[
+                {'label': 'Offense', 'value': 'Offense'},
+                {'label': 'Defense', 'value': 'Defense'}
+            ],
+            value='Offense'
+        ),
+        dcc.Dropdown(
+            id='rushing-passing-selector',
+            options=[
+                {'label': 'Rushing', 'value': 'Rushing'},
+                {'label': 'Passing', 'value': 'Passing'}
+            ],
+            value='Rushing'
+        ),
+        dcc.Graph(
+            id='rushing-passing',
+            style={'max-width': '50%'}
+        ),
+        html.P("The visualization above shows how the season progressed for each team's rushing and passing offense and defense. Again, we can see Winnipeg was head and shoulders above the rest of the league, being top 3 in every category. Edmonton and Ottawa were both especially week in the passing game, being towards the bottom on both offense and defense. BC's offense was heavily polarized, placing first in passying yards for, but last in rushing yards for. ", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
     
-    dcc.Dropdown(
-        id='week-dropdown-agression',  # Unique ID for the second chart dropdown
-        options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],  # Assuming 21 weeks
-        value=1  # Default value
-    ),
-    dcc.Graph(id='agression'),
+    # First Down Section
+    html.Div([
+        dcc.Dropdown(
+            id='week-dropdown-first-down',
+            options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],
+            value=1
+        ),
+        dcc.Graph(id='first-down'),
+        html.P("The graph above shows average yards gained on 1st down for each team, and the percentage they ran or threw the ball on first down. The CFL, unlike the NFL, is only a 3 down league, so every yard gained on first down is incredibly important. As expected, the teams with strong offenses would average more yards on first down. The three strongest first down teams, Toronto and Winnipeg, ran the ball a large chunk of the time (over 45%), suggesting a strong first down rush game led to strong first down success. However, the only other team to average over 7 yards, BC, only ran the ball on 32.3% of the time, but was still able to be succesful with a strong first down passing gaame.", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
+
     
-    dcc.Dropdown(
-        id='week-dropdown-second-down',
-        options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],  # Assuming 21 weeks
-        value=1  # Default value
-    ),
-    dcc.RadioItems(
-        id='heatmap-type',
-        options=[
-            {'label': 'Offense', 'value': 'offense'},
-            {'label': 'Defense', 'value': 'defense'}
-        ],
-        value='offense'  # Default value
-    ),
-    dcc.Graph(id='second-down'),
-    dcc.Graph(
-        id='big-play',
-        figure=create_big_play_analysis_graph()  # Call the function here
-    ),
-    dcc.Dropdown(
-        id='team-dropdown-kicking',
-        options=[{'label': f'Team {Team}', 'value': Team} for Team in Teams],  # Assuming 21 weeks
-        value='BC'  # Default value
-    ),
-    dcc.RadioItems(
-        id='kick-type',
-        options=[
-            {'label': 'Kickoffs', 'value': 'kickoffs'},
-            {'label': 'Punts', 'value': 'punts'}
-        ],
-        value='punts'  # Default value
-    ),
-    dcc.Graph(id='kicking'),
-    dcc.RadioItems(
-        id='offense-defense-selector-rushing-passing',
-        options=[
-            {'label': 'Offense', 'value': 'Offense'},
-            {'label': 'Defense', 'value': 'Defense'}
-        ],
-        value='Offense'  # Default value
-    ),
-    dcc.Dropdown(
-        id='rushing-passing-selector',
-        options=[
-            {'label': 'Rushing', 'value': 'Rushing'},
-            {'label': 'Passing', 'value': 'Passing'}
-        ],
-        value='Rushing'
-    ),
-    dcc.Graph(id='rushing-passing'),
-    dcc.RadioItems(
-        id='offense-defense-selector-passing-range',
-        options=[
-            {'label': 'Offense', 'value': 'Offense'},
-            {'label': 'Defense', 'value': 'Defense'},
-        ],
-        value = 'Offense'
-    ),
-    dcc.Graph(id='passing-range')
-])
+    # Second Down Section
+    html.Div([
+        dcc.Slider(
+            id='week-slider-second-down',
+            min=1,
+            max=21,
+            step=1,
+            value=1,
+            marks={i: f'Week {i}' for i in range(1, 22, 2)}
+        ),
+        dcc.RadioItems(
+            id='heatmap-type',
+            options=[
+                {'label': 'Offense', 'value': 'offense'},
+                {'label': 'Defense', 'value': 'defense'}
+            ],
+            value='offense'
+        ),
+        dcc.Graph(id='second-down'),
+        html.P("As mentioned above, the CFL only plays with three downs. For that reason, second down conversions are incredibly important. Converting on second down allows you to keep your drive going, and allows you to avoid potential punts or turnovers-on-downs. The heatmap above shows how teams performed at converting on second down on offence, as well as how well their defence was at preventing teams from converting on second down. We can see the strong offenses, like Winnipeg and BC were strong second down teams. BC and Hamilton often faced long second downs, but were also top in the league in converting on second and log. On defense, simlarly the teams that performed well defensively overall had strong second down defence. Toronto and Winnpeg forced teams to face the longest second downs, and stopped them from converting fairly regularly. Some of the weaker teams, like Edmonton and Saskatchewan, fared particularly poorly on stopping second and short attempts. That, paired with poor first down defence, can explain their subpar defensive results. This may help explain why these two teams ranked bottom 2 in both points against and yards against.", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
+    
+    # Aggression Section
+    html.Div([
+        dcc.Dropdown(
+            id='week-dropdown-agression',
+            options=[{'label': f'Week {i}', 'value': i} for i in range(1, 22)],
+            value=1
+        ),
+        dcc.Graph(id='agression'),
+        html.P("Every fan loves watching aggresive football. So I decided to take a look at certain agressive plays, and graph them compared to a team's average points for per game. The plays selected were two-point conversion attempts, third and short conversion attempts, and deep pass attempts. These plays were chosen because they are all decisions that are generally considered agressive by football fans and analysts. The graph shows varying levels of connections. It seems that there wasn't a strong correlation between two-point conversion attempts and points scored, nor with third and short conversion attempts. However, we can clearly see that teams that attempted more deep passes did tend to average more points per game.", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
+
+    # Kicking Section
+    html.Div([
+        dcc.Dropdown(
+            id='team-dropdown-kicking',
+            options=[{'label': f'Team: {Team}', 'value': Team} for Team in Teams],
+            value='BC'
+        ),
+        dcc.RadioItems(
+            id='kick-type',
+            options=[
+                {'label': 'Kickoffs', 'value': 'kickoffs'},
+                {'label': 'Punts', 'value': 'punts'}
+            ],
+            value='punts'
+        ),
+        dcc.Graph(id='kicking'),
+        html.P("Above we see a visualization of team's performance on kickoffs and punting. The above graph can help us see which teams were most effective at gaining yard position through strong special teams performace. Overall, there wasn't too much yardage to be gained on the punt or the kickoff. However some teams did consistently perform better or worse over the season. Montreal seemed to particularly excel at special teams. After kickoffs, opponents started around 36 yard on average, the second best mark in the leauge. They also allowed only one return for more than 40 yards over the all whole season. They were also very effective at punting, netting the most yards on average in the league.", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
+
+    # Passing Range Section
+    html.Div([
+        dcc.RadioItems(
+            id='offense-defense-selector-passing-range',
+            options=[
+                {'label': 'Offense', 'value': 'Offense'},
+                {'label': 'Defense', 'value': 'Defense'},
+            ],
+            value = 'Offense'
+        ),
+        dcc.Graph(id='passing-range'),
+        html.P("This chart shows how each team succeeded in passing efficiency, broken up by throwing range. Passing efficiency is a stat created to try and capture a team's overall passing performance. The stat takes into account attempts, completions, yards, TDs and interceptions. On the y-axis, each team is organized by their overall passing efficiency. Each team has a bubble showing their short, medium and deep range passing efficiency (represented on the x-axis). The size of the bubbles demonstrates the number of attempts each team threw at each range. The bubble sizes are normalized, so the size of the bubble shows how much teams throw at that depth relative to other teams at the same depth. There's a lot of interesting information on this chart, but we can clearly see that teams generally threw at similar levels of efficiency on short throws. The gains or losses in efficiency can be seen in how well and how often teams threw the ball medium and especially deep. Teams that had stronger overall passing efficiency tended to throw the ball deep more often, and more effictively. Similarly, on defense the teams that caused opponents to have the lowest overall efficiency were the ones who were best at keeping their opponents efficiency on deep passes limited. ", style={'margin-top': '10px'})
+    ], style={'border': '1px solid #ddd', 'box-shadow': '2px 2px 2px lightgrey', 'padding': '20px', 'margin-bottom': '30px', 'background-color': 'white'}),
+    html.Div([
+        html.P("Developed by Jared Boretsky", style={'text-align': 'center', 'color': '#2a3f5f'})
+    ], style={'padding': '10px', 'background-color': '#e8eaf6'})
+],style={'font-family': 'Raleway:Lato', 'color': '#003366', 'background-color': '#8FA08A', 'padding': '20px'})
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+# In[ ]:
+
+
+
 

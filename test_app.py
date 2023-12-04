@@ -1253,6 +1253,14 @@ def serve_layout():
 ],style={'font-family': 'Raleway:Lato', 'color': '#003366', 'background-color': '#8FA08A', 'padding': '20px'})
 
 app.layout = serve_layout
+def no_cache(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+@app.server.after_request
+def add_no_cache(response):
+    return no_cache(response)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

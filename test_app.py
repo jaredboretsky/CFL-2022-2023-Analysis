@@ -44,7 +44,7 @@ def update_scatter_plot(selected_week, selected_metric):
     # Choose the plot based on the selected metric
     if selected_metric == 'Points':
         # Define the path to the CSV file for the selected week
-        csv_path = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/scoring_breakdown.csv"
+        csv_path = f"data/week_{selected_week}_2023/scoring_breakdown.csv"
 
         # Check if the file exists before attempting to read it
         if os.path.exists(csv_path):
@@ -75,7 +75,7 @@ def update_scatter_plot(selected_week, selected_metric):
             hover_data={'Point Differential': True},
             custom_data=['Team', 'Point Differential']
         )
-        logo_dir = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Logos/'
+        logo_dir = 'data/CFL_Logos/'
         Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
         x_range = df['PF'].max() - df['PF'].min()
         y_range = df['PA'].max() - df['PA'].min()
@@ -128,8 +128,8 @@ def update_scatter_plot(selected_week, selected_metric):
 
         return fig_points
     else:
-        csv_path_team = f"/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/net_offence.csv"
-        csv_path_opp = f"//Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{selected_week}_2023/opponent_net_offence.csv"
+        csv_path_team = f"data/week_{selected_week}_2023/net_offence.csv"
+        csv_path_opp = f"/data/week_{selected_week}_2023/opponent_net_offence.csv"
     # Check if the file exists before attempting to read it
         if os.path.exists(csv_path_team):
             # Read the data from the CSV file for the selected week
@@ -169,7 +169,7 @@ def update_scatter_plot(selected_week, selected_metric):
             hover_data={'Yard Differential': True},
             custom_data = ['Team', 'Yard Differential']
         )
-        logo_dir = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Logos/'
+        logo_dir = 'data/CFL_Logos/'
         Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
         x_range = df['Yards For'].max() - df['Yards For'].min()
         y_range = df['Yards Against'].max() - df['Yards Against'].min()
@@ -229,7 +229,7 @@ def update_scatter_plot(selected_week, selected_metric):
     
 def update_first_down(week_number):
     # Load data for the selected week
-    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/first_down_offence.csv'
+    filename = f'data/week_{week_number}_2023/first_down_offence.csv'
     df = pd.read_csv(filename)
     df = df.drop(9)
     # Perform the same data processing as before
@@ -320,7 +320,7 @@ def update_first_down(week_number):
     [Input('week-dropdown-agression', 'value')])
     
 def update_agression(week_number):
-    filename = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/agression_data.csv'
+    filename = f'data/agression_data.csv'
     df = pd.read_csv(filename)
     df = df[df['Week'] == week_number]
     df['PF_per_game'] = df['PF']/df['GP']
@@ -354,10 +354,10 @@ def update_agression(week_number):
     
 def update_second_down(week_number, heatmap_type):
     if heatmap_type == 'offense':
-        offense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/second_down_conversions.csv'
+        offense_file_name = f'data/week_{week_number}_2023/second_down_conversions.csv'
         df = pd.read_csv(offense_file_name)
     else:
-        defense_file_name = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week_number}_2023/opponent_second_down_conversions.csv'
+        defense_file_name = f'data/week_{week_number}_2023/opponent_second_down_conversions.csv'
         df = pd.read_csv(defense_file_name)
     
     # Create two separate dataframes
@@ -438,7 +438,7 @@ def update_second_down(week_number, heatmap_type):
     return fig
 
 def create_big_play_analysis():
-    df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/big_play_analysis.csv')
+    df = pd.read_csv('data/week_21_2023/big_play_analysis.csv')
     df.drop(9, inplace=True)
     
     df['Offensive_Cumsum'] = df['Total']
@@ -661,7 +661,7 @@ Teams = ['BC', 'CGY', 'EDM', 'HAM', 'MTL', 'OTT', 'SSK', 'TOR', 'WPG']
 )
 
 def update_kicking(Team, kick_type):
-    IMAGE_FILENAME1 = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/CFL_Field.png'
+    IMAGE_FILENAME1 = 'data/CFL_Field.png'
     image1 = base64.b64encode(open(IMAGE_FILENAME1, 'rb').read())
     if kick_type == 'kickoffs':   
         fig_kickoff = go.Figure(
@@ -686,7 +686,7 @@ def update_kicking(Team, kick_type):
 
         fig_kickoff.update_layout(template="plotly_white")
 
-        file_path_kickoff = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/kickoff_analysis.csv'
+        file_path_kickoff = 'data/week_21_2023/kickoff_analysis.csv'
         df_kickoff = pd.read_csv(file_path_kickoff)
 
         if not df_kickoff[df_kickoff['Team'] == Team].empty:
@@ -792,7 +792,7 @@ def update_kicking(Team, kick_type):
 
         fig_punts.update_layout(template="plotly_white")
         
-        file_path_punting = '/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/punting_analysis.csv'
+        file_path_punting = 'data/week_21_2023/punting_analysis.csv'
         df_punt = pd.read_csv(file_path_punting)
         if not df_punt[df_punt['Team'] == Team].empty:
             adjusted_avg_value = df_punt[df_punt['Team'] == Team]['Adjusted_Avg'].iloc[0]
@@ -892,7 +892,7 @@ def update_rushing_passing(off_def, rush_pass):
     
     dfs = []
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/rushing_analysis.csv'
+        file_path = f'data/week_{week}_2023/rushing_analysis.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -902,7 +902,7 @@ def update_rushing_passing(off_def, rush_pass):
 
     dfs = []
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/passing_analysis_base_data.csv'
+        file_path = f'data/week_{week}_2023/passing_analysis_base_data.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -912,7 +912,7 @@ def update_rushing_passing(off_def, rush_pass):
 
     dfs = []
     for week in range(1, 22):  # Adjust the range based on your week numbers
-        file_path = f'/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_{week}_2023/opponent_passing_analysis_base_data.csv'
+        file_path = f'data/week_{week}_2023/opponent_passing_analysis_base_data.csv'
         week_df = pd.read_csv(file_path)
         week_df['Week'] = week
         dfs.append(week_df)
@@ -1043,13 +1043,13 @@ def update_rushing_passing(off_def, rush_pass):
 
 def update_graph(off_def):
     if off_def == 'Offense':
-        filtered_df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_21_2023/passing_analysis_range_data.csv')
+        filtered_df = pd.read_csv('data/week_21_2023/passing_analysis_range_data.csv')
         filtered_df = filtered_df.drop(9)
         filtered_df['0-9_yds_Att'] = pd.to_numeric(filtered_df['0-9_yds_Att'], errors='coerce')
         filtered_df['total_effic'] = [99.5, 83.8, 89.5, 87.0, 95.2, 82.1, 89.4, 104.1, 116.2]
 
     else:
-        filtered_df = pd.read_csv('/Users/jaredboretsky/Documents/concordia-bootcamps/ds-final_project/CFL_Data/week_20_2023/opponent_passing_analysis_range_data.csv')
+        filtered_df = pd.read_csv('data/week_20_2023/opponent_passing_analysis_range_data.csv')
         filtered_df = filtered_df.drop(9)
         filtered_df['0-9_yds_Att'] = pd.to_numeric(filtered_df['0-9_yds_Att'], errors='coerce')
         filtered_df['total_effic'] = [89.9, 92.9, 104.0, 94.2, 83.4, 101.8, 105.6, 95.2, 81.7]

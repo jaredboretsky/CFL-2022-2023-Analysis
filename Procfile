@@ -1,1 +1,1 @@
-web: gunicorn test_app:server
+web: gunicorn CFL_2022_2023_Dashboard:server
